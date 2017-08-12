@@ -1,6 +1,11 @@
 swarm:
    port:
       offset: 1
+   messaging-activemq:
+      servers:
+         default:
+            jms-queues:
+               events: {}
 primary_database:
    jdbcDriver:
       name: com.mysql
