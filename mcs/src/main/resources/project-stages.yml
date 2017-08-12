@@ -6,6 +6,9 @@ swarm:
          default:
             jms-queues:
                events: {}
+kafka:
+   bootstrap:
+      servers: localhost:9092,localhost:9093
 primary_database:
    jdbcDriver:
       name: com.mysql
