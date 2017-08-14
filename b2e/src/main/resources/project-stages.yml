@@ -1,0 +1,7 @@
+swarm:
+   port:
+      offset: 2
+kafka:
+   topics: mcs,aro
+   bootstrap:
+      servers: localhost:9092,localhost:9093
