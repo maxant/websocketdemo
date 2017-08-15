@@ -1,27 +1,52 @@
 <html>
-<head><title>Undertow Chat</title>
-    <style type="text/css">
-    html, body {
-      width: 100%;
-      height: 100%;
-    }
+<head>
+    <title>Websocket Demo</title>
 
-    html, body, ul, ol, dl, li, dt, dd, p, blockquote, fieldset, legend, img, form, h1, h2, h3, h4, h5, h6 {
-      margin: 0;
-      padding: 0;
-    }
+  <script>
 
-    body {
-      font: normal 12px/1.5 Arial, Helvetica, 'Bitstream Vera Sans', sans-serif;
-      background: #c5deea; /* Old browsers */
-      background: -moz-linear-gradient(top, #c5deea 0%, #066dab 100%); /* FF3.6+ */
-      background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #c5deea), color-stop(100%, #066dab)); /* Chrome,Safari4+ */
-      background: -webkit-linear-gradient(top, #c5deea 0%, #066dab 100%); /* Chrome10+,Safari5.1+ */
-      background: -o-linear-gradient(top, #c5deea 0%, #066dab 100%); /* Opera 11.10+ */
-      background: -ms-linear-gradient(top, #c5deea 0%, #066dab 100%); /* IE10+ */
-      background: linear-gradient(to bottom, #c5deea 0%, #066dab 100%); /* W3C */
-      height: 90%;
+  var socket, socket;
+  if (window.WebSocket) {
+    setupWebSocket();
+  } else {
+    alert("Your browser does not support Websockets.");
+  }
+
+  function send(message) {
+    if (!window.WebSocket) {
+      return false;
     }
+    if (socket.readyState == WebSocket.OPEN) {
+      socket.send(message);
+    } else {
+      alert("The socket is not open.");
+    }
+    return false;
+  }
+
+  function setupWebSocket(){
+    console.log("reconnecting ws...");
+    socket = new WebSocket("ws://localhost:8082/b2e");
+    socket.onmessage = function(event) {
+      var chat = document.getElementById('chat');
+      chat.innerHTML = chat.innerHTML + event.data + "<br />";
+    };
+    socket.onerror = function(event) {
+      console.log("error with WS: " + JSON.stringify(event));
+      var error = document.getElementById('error');
+      error.innerHTML = error.innerHTML + event.data + "<br />";
+    };
+    socket.onopen = function(event) {
+      console.log("reconnected ws. " + JSON.stringify(event));
+    };
+    socket.onclose = function(event){
+      console.log("ws closed. retrying in 100ms. " + JSON.stringify(event));
+      setTimeout(setupWebSocket, 100);
+    };
+  }
+
+  </script>
+
+  <style type="text/css">
 
     .center {
       margin-left: auto;
@@ -56,8 +81,9 @@
 <body>
 <div class="page">
     <div class="center">
-        <h1>JSR-356 Web Socket Chat</h1>
+        <h1>Some Site</h1>
 
+        <div id="error" style="height:30px; background: red;"></div>
         <div id="chat" style="height:100%;width: 100%; overflow: scroll;"></div>
 
         <form onsubmit="return false;" class="chatform" action="">
@@ -67,29 +93,5 @@
         </form>
     </div>
 </div>
-<script>
-  var socket;
-  if (window.WebSocket) {
-    socket = new WebSocket("ws://localhost:8080/b2e");
-    socket.onmessage = function(event) {
-      var chat = document.getElementById('chat');
-      chat.innerHTML = chat.innerHTML + event.data + "<br />";
-    };
-  } else {
-    alert("Your browser does not support Websockets. (Use Chrome)");
-  }
-
-  function send(message) {
-    if (!window.WebSocket) {
-      return false;
-    }
-    if (socket.readyState == WebSocket.OPEN) {
-      socket.send(message);
-    } else {
-      alert("The socket is not open.");
-    }
-    return false;
-  }
-</script>
 </body>
 </html>

@@ -2,11 +2,14 @@
 
 A Swarm application with:
 
-- JAX-RS
 - CDI
+- Static Web Content
 - Web Sockets
 
 This contains the webapp used to subscribe to events from the backend.
+
+- Roundtrip from postman->mcs->kafka->b2e->browser works.
+- the following test test works: shutdown b2e, send message, restart b2e. clients receive missed messages. IMPORTANT: wait 5 secs before subscribing to kafka, to allow time for clients to reconnect. see code in the EventProcessor class related to that.
 
 #Useful Links
 

@@ -10,16 +10,15 @@ import org.slf4j.Logger;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import javax.ejb.Lock;
-import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.inject.Inject;
 import java.util.*;
 
+import static java.lang.String.format;
+
 @Singleton
-@Lock(LockType.READ)
 @Startup
 public class EventProcessor {
 
@@ -35,8 +34,8 @@ public class EventProcessor {
     Consumer<String, String> consumer;
 
     boolean running = true;
-    boolean finished = false;
 
+    boolean finished = false;
 
     @PostConstruct
     public void init() {
@@ -61,7 +60,7 @@ public class EventProcessor {
 
         logger.info("subscribed to kafka topics: " + topics);
 
-        mes.execute(() -> read());
+        mes.execute(() -> sleepThenRead());
 
         logger.info("post construction done.");
     }
@@ -80,16 +79,28 @@ public class EventProcessor {
         logger.info("pre destruction done.");
     }
 
+    private void sleepThenRead() {
+        //test: shutdown B2E, send event via mcs. restart B2E. message sent?
+        //problematic because event is received BEFORE clients reconnect. we have to give
+        //them time to reconnect. so defer connecting to kafka for say 10 secs?
+        try {
+            Thread.sleep(5000L);
+        } catch (InterruptedException e) {
+            logger.error("Failed to wait a little before consuming events from kafka. its important to sleep, to allow clients time to reconnect via websocket.", e);
+        }
+        mes.execute(() -> read());
+    }
+
     private void read() {
         ConsumerRecords<String, String> records = consumer.poll(100);
         for (ConsumerRecord<String, String> record : records) {
 
             //TODO async commit?? => remove commit stuff in props above???
 
-            //TODO put into model
+            logger.info(format("topic= %s, offset = %d, key = %s, value = %s%n", record.topic(), record.offset(), record.key(), record.value()));
 
-            System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
-            logger.info("RECORD RECEIVED");
+            distributeToUi(record);
+
         }
 
         if (running) {
@@ -100,6 +111,22 @@ public class EventProcessor {
             logger.info("kafka consumer closed.");
             finished = true;
         }
+    }
+
+    private void distributeToUi(ConsumerRecord<String, String> record) {
+        model.getSessions()
+                .filter(s -> true) //TODO filter based on event contents. session needs IDs e.g. under s.getUserProperties(), for schadenfall, teilfall, etc. ie context
+                .forEach(s -> {
+                    s.getAsyncRemote().sendText(record.value(), r -> {
+                        if(r.isOK()){
+                            logger.info("sent to session " + s.getId());
+                        }else{
+                            logger.warn("failed to send to session " + s.getId(), r.getException());
+                        }
+                    });
+                });
+
+        //TODO need to tell other nodes in cluster that the message was successfully sent to the client!
     }
 
 }
