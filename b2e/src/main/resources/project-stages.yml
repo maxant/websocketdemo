@@ -5,3 +5,12 @@ kafka:
    topics: mcs,aro
    bootstrap:
       servers: localhost:9092,localhost:9093
+zookeeper: localhost:2181
+event:
+   history:
+      size: 10
+# the following is SUPER important if you want to get jax-rs working with static content in swarm:
+deployment:
+   b2e.war:
+      jaxrs:
+         application-path: /api

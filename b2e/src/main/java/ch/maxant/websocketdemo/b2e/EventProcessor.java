@@ -16,6 +16,7 @@ import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.inject.Inject;
 import java.util.*;
 
+import static ch.maxant.websocketdemo.b2e.WebSocketEndpoint.CONTEXT;
 import static java.lang.String.format;
 
 @Singleton
@@ -27,6 +28,9 @@ public class EventProcessor {
 
     @Inject
     Model model;
+
+    @Inject
+    ZooKeeperClient zkc;
 
     @Resource
     ManagedExecutorService mes;
@@ -95,12 +99,13 @@ public class EventProcessor {
         ConsumerRecords<String, String> records = consumer.poll(100);
         for (ConsumerRecord<String, String> record : records) {
 
-            //TODO async commit?? => remove commit stuff in props above???
+            //TODO async commit?? => remove commit stuff in props above??? => we need to handle the offset ourselves, because when new versions of swarm are deployed in the cloud, they overwrite old images and that data gets lost. same is true if harddisk dies.
 
             logger.info(format("topic= %s, offset = %d, key = %s, value = %s%n", record.topic(), record.offset(), record.key(), record.value()));
 
-            distributeToUi(record);
+            model.addEvent(new Model.Event(record.key(), record.value(), record.timestamp()/*TODO take from actual event body so its the time the event was actually created in the fachanwendung*/, record.offset(), record.topic()));
 
+            distributeToUi(record);
         }
 
         if (running) {
@@ -114,10 +119,11 @@ public class EventProcessor {
     }
 
     private void distributeToUi(ConsumerRecord<String, String> record) {
+
         model.getSessions()
-                .filter(s -> true) //TODO filter based on event contents. session needs IDs e.g. under s.getUserProperties(), for schadenfall, teilfall, etc. ie context
+                .filter(s -> s.getUserProperties().get(CONTEXT).equals(record.key())) //TODO filter needs to be better, ie not using equals, but regexp
                 .forEach(s -> {
-                    s.getAsyncRemote().sendText(record.value(), r -> {
+                    s.getAsyncRemote().sendText(record.topic() + "::" + record.value(), r -> {
                         if(r.isOK()){
                             logger.info("sent to session " + s.getId());
                         }else{
@@ -125,8 +131,6 @@ public class EventProcessor {
                         }
                     });
                 });
-
-        //TODO need to tell other nodes in cluster that the message was successfully sent to the client!
     }
 
 }

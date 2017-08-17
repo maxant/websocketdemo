@@ -15,6 +15,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
+        <!-- jackson used for json dates. NOTE: version needs to match version used by swarm! -->
+        <jackson.version>2.7.4</jackson.version>
+
         <wildfly-swarm.version>2017.8.1</wildfly-swarm.version>
     </properties>
 
@@ -38,6 +41,10 @@
         </dependency>
         <dependency>
             <groupId>org.wildfly.swarm</groupId>
+            <artifactId>jaxrs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.swarm</groupId>
             <artifactId>ejb</artifactId>
         </dependency>
         <dependency>
@@ -55,6 +62,36 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
             <version>0.11.0.0</version>
+        </dependency>
+
+        <!-- best if same version as that which kafka is using -->
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <version>3.4.10</version>
+        </dependency>
+
+        <!-- added to serialise java.time.LocalDate as an ISO 8601 String -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-parameter-names</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.1</version>
         </dependency>
 
     </dependencies>

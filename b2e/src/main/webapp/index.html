@@ -25,7 +25,7 @@
 
   function setupWebSocket(){
     console.log("reconnecting ws...");
-    socket = new WebSocket("ws://localhost:8082/b2e");
+    socket = new WebSocket("ws://localhost:8082/b2e/" + document.getElementById('caseNr').text);
     socket.onmessage = function(event) {
       var chat = document.getElementById('chat');
       chat.innerHTML = chat.innerHTML + event.data + "<br />";
@@ -83,6 +83,7 @@
     <div class="center">
         <h1>Some Site</h1>
 
+        <input type="text" id="caseNr" placeholder="Enter your case number here...">
         <div id="error" style="height:30px; background: red;"></div>
         <div id="chat" style="height:100%;width: 100%; overflow: scroll;"></div>
 
