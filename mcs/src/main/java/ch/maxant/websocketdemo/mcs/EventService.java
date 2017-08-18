@@ -49,13 +49,15 @@ public class EventService {
         if(producer != null){
             producer.close();
         }
+        logger.info("mdb destroyed");
     }
 
     public void onMessage(Message m) throws JMSException {
         String msg = ((TextMessage)m).getText();
+        String context = m.getStringProperty("context");
         logger.info("ON MESSAGE: " + msg);
         try{
-            producer.send(new ProducerRecord<>("mcs", msg), (metadata, ex) -> {
+            producer.send(new ProducerRecord<>("mcs", context, msg), (metadata, ex) -> {
                 if(ex == null){
                     logger.info("ACK of '" + msg + "': " + metadata);
                 }else{

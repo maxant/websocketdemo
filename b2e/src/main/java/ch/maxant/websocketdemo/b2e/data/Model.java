@@ -5,7 +5,6 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 import javax.enterprise.context.ApplicationScoped;
 import javax.websocket.Session;
 import java.util.*;
-import java.util.stream.Stream;
 
 @ApplicationScoped
 public class Model {
@@ -40,8 +39,8 @@ public class Model {
         return sessions.remove(session);
     }
 
-    public Stream<Session> getSessions(){
-        return sessions.stream();
+    public Collection<Session> getSessions(){
+        return new HashSet<>(sessions);
     }
 
     /** creates a copy of the events, ie a snapshot */

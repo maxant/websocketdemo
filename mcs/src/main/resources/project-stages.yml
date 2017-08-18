@@ -1,6 +1,8 @@
 swarm:
    port:
       offset: 1
+   context:
+      path: /mcs
    messaging-activemq:
       servers:
          default:

@@ -4,7 +4,10 @@
 
   <script>
 
-  var socket, socket;
+  var EVENTS_LATEST_TIMESTAMP_KEY = "events.latestTimestamp";
+  var socket;
+  var insuranceCase;
+
   if (window.WebSocket) {
     setupWebSocket();
   } else {
@@ -12,37 +15,157 @@
   }
 
   function send(message) {
-    if (!window.WebSocket) {
-      return false;
-    }
-    if (socket.readyState == WebSocket.OPEN) {
+    if (socket.readyState === WebSocket.OPEN) {
       socket.send(message);
     } else {
-      alert("The socket is not open.");
+      console.error("attempting to send data '" + message + "', but socket is not open.");
     }
-    return false;
   }
 
   function setupWebSocket(){
     console.log("reconnecting ws...");
-    socket = new WebSocket("ws://localhost:8082/b2e/" + document.getElementById('caseNr').text);
+    socket = new WebSocket("ws://" + getHostAndPort() + "/b2e/ws");
+
     socket.onmessage = function(event) {
-      var chat = document.getElementById('chat');
-      chat.innerHTML = chat.innerHTML + event.data + "<br />";
+      console.log("received via websocket: " + event.data);
+      if(event.data === 'noData'){
+        //do we need to load the case model too? no, when the user tries to save it, we'd get an optimistic lock exception (if we bothered to impl it!)
+        reloadTasks();
+      }else if(event.data.indexOf('ERROR') === 0){
+        console.error(event.data);
+        setError("Technical error - see console");
+      }else{
+        var e = JSON.parse(event.data);
+        localStorage.setItem(EVENTS_LATEST_TIMESTAMP_KEY, e.timestamp);
+
+        if(e.topic === 'aro' && e.command === 'CREATED_TASK'){
+          reloadTasks();
+        }else if(e.topic === 'mcs' && e.command === 'MODIFIED_CASE'){
+          setAck('The case has been updated.'); //TODO do we need to know by who? if a different user did it, we'd want to know that, as it might cause a merge conflict
+        }else{
+          console.error("code change required for unknown topic/command: " + e.topic + "/" + e.command);
+        }
+      }
     };
+
     socket.onerror = function(event) {
       console.log("error with WS: " + JSON.stringify(event));
-      var error = document.getElementById('error');
-      error.innerHTML = error.innerHTML + event.data + "<br />";
+      setError(event.data);
     };
+
     socket.onopen = function(event) {
       console.log("reconnected ws. " + JSON.stringify(event));
+      if(insuranceCase){
+          contextChanged();
+      }
     };
+
     socket.onclose = function(event){
       console.log("ws closed. retrying in 100ms. " + JSON.stringify(event));
       setTimeout(setupWebSocket, 100);
     };
+
   }
+
+  function reloadTasks(){
+    console.error("TODO");
+  }
+
+  function setAck(msg){
+    var ack = document.getElementById("ack");
+    ack.innerHTML = msg;
+    ack.style.display = msg ? "block" : "none";
+
+    setTimeout(function(){
+      ack.innerHTML = "";
+      ack.style.display = "none";
+    }, 3000);
+  }
+
+  function contextChanged(){
+    var msg = {
+      latestTimestamp: localStorage.getItem(EVENTS_LATEST_TIMESTAMP_KEY) || Date.now(),
+      command: 'newContext',
+      context: ''+insuranceCase.nr
+    };
+
+    send(JSON.stringify(msg));
+  }
+
+  function loadCase(event){
+    var caseNr, xhr;
+    if(event.keyCode==13) {
+      caseNr = document.getElementById("caseNr").value;
+      xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function(){
+        if (xhr.readyState == XMLHttpRequest.DONE){
+          if (xhr.status == 200){
+            insuranceCase = JSON.parse(xhr.responseText);
+            caseLoaded();
+          }else if (xhr.status == 204){
+            insuranceCase = null;
+            caseLoaded();
+          }
+        }
+      }
+      xhr.open("GET", "http://" + getHostAndPort() + "/mcs/cases/case/" + caseNr);
+      xhr.send();
+    }
+  }
+
+  function caseLoaded(){
+    if(insuranceCase){
+      showCaseForm(true);
+      setError("");
+
+      document.getElementById("case.created").value = insuranceCase.created;
+      document.getElementById("case.description").value = insuranceCase.description;
+
+      contextChanged();
+    }else{
+      showCaseForm(false);
+      setError("Case not found!");
+    }
+  }
+
+  function showCaseForm(b){
+    document.getElementById("caseForm").style.display = b ? "block" : "none";
+  }
+
+  function setError(err){
+    var e = document.getElementById("error");
+    e.innerHTML = err;
+    e.style.display = err ? "block" : "none";
+  }
+
+  function saveCase(){
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function(){
+        if (xhr.readyState == XMLHttpRequest.DONE){
+            if (xhr.status == 204){
+              //no need to do anything, because an event will arrive
+            }else{
+              setError("Failed to save case: " + xhr.status + " " + xhr.responseText);
+            }
+        }
+    }
+
+    insuranceCase.description = document.getElementById("case.description").value;
+
+    xhr.open("PUT", "http://" + getHostAndPort() + "/mcs/cases/case/");
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify(insuranceCase));
+  }
+
+  function getHostAndPort(){
+    var url = window.location.href;
+    var arr = url.split("/");
+    return arr[2];
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById("caseNr").focus();
+  }, true);
 
   </script>
 
@@ -53,13 +176,6 @@
       margin-right: auto;
       width: 70%;
       background: white;
-    }
-
-    .chatform {
-      margin-left: auto;
-      margin-right: auto;
-      margin-bottom: 0;
-      width: 70%;
     }
 
     form {
@@ -81,18 +197,42 @@
 <body>
 <div class="page">
     <div class="center">
-        <h1>Some Site</h1>
+        <h1>B2E</h1>
 
-        <input type="text" id="caseNr" placeholder="Enter your case number here...">
-        <div id="error" style="height:30px; background: red;"></div>
-        <div id="chat" style="height:100%;width: 100%; overflow: scroll;"></div>
+        <div id="ack" style="height:30px; background: green; display: none;"></div>
+        <div id="error" style="height:30px; background: red; display: none;"></div>
 
-        <form onsubmit="return false;" class="chatform" action="">
-            <label for="msg">Message</label>
-            <input type="text" name="message" id="msg"
-                   onkeypress="if(event.keyCode==13) { send(this.form.message.value); this.value='' } "/>
+        <form onsubmit="return false;" action="">
+            <label for="caseNr">Search</label>
+            <input type="text"
+                   name="caseNr"
+                   id="caseNr"
+                   placeholder="Enter your case number here..."
+                   onkeypress="loadCase(event);"
+            >
         </form>
+
+        <hr>
+        <div id="caseForm" style="display: none;">
+            <form onsubmit="return false;" action="">
+                <label for="case.description">Description</label>
+                <input type="text"
+                       name="case.description"
+                       id="case.description"
+                >
+                <br/>
+                <label for="caseNr">Created</label>
+                <input type="text"
+                       name="case.created"
+                       id="case.created"
+                       readonly="readonly"
+                >
+                <br/>
+                <button type="button" onclick="saveCase();">Submit</button>
+            </form>
+        </div>
     </div>
 </div>
+
 </body>
 </html>

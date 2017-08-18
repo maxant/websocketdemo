@@ -14,9 +14,11 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.inject.Inject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.StringTokenizer;
 
-import static ch.maxant.websocketdemo.b2e.WebSocketEndpoint.CONTEXT;
 import static java.lang.String.format;
 
 @Singleton
@@ -30,16 +32,14 @@ public class EventProcessor {
     Model model;
 
     @Inject
-    ZooKeeperClient zkc;
+    EventSender eventSender;
 
     @Resource
     ManagedExecutorService mes;
 
     Consumer<String, String> consumer;
 
-    boolean running = true;
-
-    boolean finished = false;
+    Object consumerLock = new Object();
 
     @PostConstruct
     public void init() {
@@ -59,8 +59,7 @@ public class EventProcessor {
         while (st.hasMoreTokens()) {
             topics.add(st.nextToken());
         }
-        //consumer.subscribe(topics);
-        consumer.subscribe(Arrays.asList("mcs"));
+        consumer.subscribe(topics);
 
         logger.info("subscribed to kafka topics: " + topics);
 
@@ -71,16 +70,11 @@ public class EventProcessor {
 
     @PreDestroy
     public void predestroy() {
-        running = false;
-        while(!finished){
-            try {
-                logger.info("waiting for kafka to shutdown...");
-                Thread.sleep(1000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        logger.info("closing kafka consumer...");
+        synchronized (consumerLock){ //ugly, but its not thread safe and i really want to call close before the server goes down and theres no guarantee that will happen if we say use a boolean which is set here to tell the next running execution to do the close. that might never run, and leave the consumer in an ugly state
+            consumer.close();
         }
-        logger.info("pre destruction done.");
+        logger.info("closed consumer. pre destruction done.");
     }
 
     private void sleepThenRead() {
@@ -96,41 +90,28 @@ public class EventProcessor {
     }
 
     private void read() {
-        ConsumerRecords<String, String> records = consumer.poll(100);
+        logger.debug("reading kafka...");
+        ConsumerRecords<String, String> records;
+        synchronized (consumerLock){
+            logger.debug("polling kafka...");
+            records = consumer.poll(1000);
+        }
+        logger.debug("polled kafka...");
         for (ConsumerRecord<String, String> record : records) {
 
-            //TODO async commit?? => remove commit stuff in props above??? => we need to handle the offset ourselves, because when new versions of swarm are deployed in the cloud, they overwrite old images and that data gets lost. same is true if harddisk dies.
+            // TODO async commit?? => remove commit stuff in props above??? => we need to handle the offset ourselves,
+            // because when new versions of swarm are deployed in the cloud, they overwrite old images and that data
+            // gets lost. same is true if harddisk dies.
 
-            logger.info(format("topic= %s, offset = %d, key = %s, value = %s%n", record.topic(), record.offset(), record.key(), record.value()));
+            logger.info(format("got message from kafka: topic= %s, offset = %d, key = %s, value = %s%n", record.topic(), record.offset(), record.key(), record.value()));
 
-            model.addEvent(new Model.Event(record.key(), record.value(), record.timestamp()/*TODO take from actual event body so its the time the event was actually created in the fachanwendung*/, record.offset(), record.topic()));
+            model.addEvent(new Model.Event(record.key(), record.value(), record.timestamp(), record.offset(), record.topic()));
 
-            distributeToUi(record);
+            eventSender.distributeToUi(model.getSessions(), record);
         }
 
-        if (running) {
-            mes.execute(() -> read());
-        } else {
-            logger.info("closing kafka consumer...");
-            consumer.close();
-            logger.info("kafka consumer closed.");
-            finished = true;
-        }
-    }
-
-    private void distributeToUi(ConsumerRecord<String, String> record) {
-
-        model.getSessions()
-                .filter(s -> s.getUserProperties().get(CONTEXT).equals(record.key())) //TODO filter needs to be better, ie not using equals, but regexp
-                .forEach(s -> {
-                    s.getAsyncRemote().sendText(record.topic() + "::" + record.value(), r -> {
-                        if(r.isOK()){
-                            logger.info("sent to session " + s.getId());
-                        }else{
-                            logger.warn("failed to send to session " + s.getId(), r.getException());
-                        }
-                    });
-                });
+        logger.debug("re-executing kafka polling...");
+        mes.execute(() -> read()); //if we are on the way down, this new task simply never gets executed.
     }
 
 }

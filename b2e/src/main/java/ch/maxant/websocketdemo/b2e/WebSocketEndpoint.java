@@ -10,10 +10,11 @@ import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
 
-@ServerEndpoint("/b2e/{context}")
+@ServerEndpoint("/ws")
 public class WebSocketEndpoint {
 
     public static final String CONTEXT = "CONTEXT";
@@ -39,11 +40,12 @@ public class WebSocketEndpoint {
             String command = n.get("command").textValue();
             if(command.equals("newContext")){
                 String context = n.get("context").textValue();
+System.out.println("Context: " + context);
                 session.getUserProperties().put(CONTEXT, context);
                 long latestTimestamp = n.get("latestTimestamp").longValue();
                 List<Model.Event> relevantEvents = model.getEvents().stream()
                         .filter(e ->
-                                e.getContext().equals(context) &&
+                                Objects.equals(context, e.getContext()) &&
                                 e.getTimestamp() >= latestTimestamp
                         ).collect(toList());
                 if(relevantEvents.isEmpty()){
@@ -59,16 +61,10 @@ public class WebSocketEndpoint {
             //TODO how do you NOK a message from the client? i guess with an error message back to it
             session.getAsyncRemote().sendText("ERROR failed to parse '" + message + "'");
         } catch (Exception e) {
+            logger.error("Failed to process message from client " + session.getId(), e);
             //TODO how do you NOK a message from the client? i guess with an error message back to it
-            session.getAsyncRemote().sendText("ERROR failed to parse '" + message + "': " + e.getMessage());
+            session.getAsyncRemote().sendText("ERROR failed to parse '" + message + "'. Error was " + e.getMessage());
         }
-
-        if(message.startsWith(CONTEXT + ":")){
-        }
-
-
-        //copy back to all connected clients
-        session.getOpenSessions().forEach(s -> s.getAsyncRemote().sendText(message));
     }
 
     @OnError

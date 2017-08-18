@@ -9,11 +9,10 @@ import org.junit.Test;
 import static com.jayway.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
-public class UserResourceIT {
+public class CaseResourceIT {
 
     @Test
-    public void testGetAll() throws Exception {
-
+    public void testGetCase() throws Exception {
 
         RequestSpecBuilder builder = new RequestSpecBuilder();
         builder.setBaseUri(getBaseUriForLocalhost());
@@ -22,11 +21,12 @@ public class UserResourceIT {
 
         given(spec)
                 .when()
-                .get("/all")
+                .get("/mcs/cases/case/1")
                 .then()
                 .log().body()
                 .statusCode(StatusCodes.OK)
-                .body("find { it.id == 1 }.name", is("John Smith"));
+                .body("nr", is(1))
+                .body("description", is("It started to hail and then..."));
     }
 
     public String getBaseUriForLocalhost() {
