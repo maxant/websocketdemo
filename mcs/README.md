@@ -27,3 +27,4 @@ A Swarm application with:
 - modify case should create a task in ARO which fires an event. modification should also fire an event.
 - dont use JMS, if the image is replaced, jboss losses any messages not yet processed! => we have to put it into the DB.
 - fix updating of cases and UUID problems
+- move common stuff to parent

@@ -9,8 +9,7 @@ import javax.inject.Inject;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 
@@ -40,7 +39,6 @@ public class WebSocketEndpoint {
             String command = n.get("command").textValue();
             if(command.equals("newContext")){
                 String context = n.get("context").textValue();
-System.out.println("Context: " + context);
                 session.getUserProperties().put(CONTEXT, context);
                 long latestTimestamp = n.get("latestTimestamp").longValue();
                 List<Model.Event> relevantEvents = model.getEvents().stream()
@@ -48,9 +46,11 @@ System.out.println("Context: " + context);
                                 Objects.equals(context, e.getContext()) &&
                                 e.getTimestamp() >= latestTimestamp
                         ).collect(toList());
+
                 if(relevantEvents.isEmpty()){
                     session.getAsyncRemote().sendText("noData"); //causes the client to do a reload
                 }else{
+                    removeDuplicates(relevantEvents);
                     session.getAsyncRemote().sendText(om.writeValueAsString(relevantEvents));
                 }
             }else{
@@ -65,6 +65,26 @@ System.out.println("Context: " + context);
             //TODO how do you NOK a message from the client? i guess with an error message back to it
             session.getAsyncRemote().sendText("ERROR failed to parse '" + message + "'. Error was " + e.getMessage());
         }
+    }
+
+    private void removeDuplicates(List<Model.Event> relevantEvents) {
+        //ensure we aren't sending the UI effectively the same event multiple times, as it will cause it
+        // to go and call the backend once for each event. we want to send the UI just one for each
+        // combination of topic and eventname. and we want to send it the last one, so it has the latest
+        // timestamp. so reverse, remove duplicates, re-reverse and then send
+        Collections.reverse(relevantEvents);
+        Set<String> uniques = new HashSet<>(relevantEvents.size());
+        Iterator<Model.Event> iterator = relevantEvents.iterator();
+        while(iterator.hasNext()){
+            Model.Event e = iterator.next();
+            String uniqueKey = e.getTopic() + "::" + e.getEventName(); //we already filtered on context - they all belong to the same one!
+            if(uniques.contains(uniqueKey)){
+                iterator.remove();
+            }else{
+                uniques.add(uniqueKey);
+            }
+        }
+        Collections.reverse(relevantEvents); //return the order to the way it was
     }
 
     @OnError

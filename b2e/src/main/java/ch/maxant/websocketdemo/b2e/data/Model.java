@@ -28,8 +28,9 @@ public class Model {
      * - drop nineteens
      * - catherine wheel
      * - chapterhouse
+     * - slowdive
      */
-    private Queue<Event> events = new CircularFifoQueue<>(Integer.getInteger("event.history.size", 10000));
+    private Queue<Event> events = new CircularFifoQueue<>(Integer.getInteger("event.history.size", 1000));
 
     public boolean addSession(Session session){
         return sessions.add(session);
@@ -85,6 +86,17 @@ public class Model {
 
         public String getTopic() {
             return topic;
+        }
+
+        @Override
+        public String toString() {
+            return "Event{" +
+                    "context='" + context + '\'' +
+                    ", eventName='" + eventName + '\'' +
+                    ", timestamp=" + timestamp +
+                    ", offset=" + offset +
+                    ", topic='" + topic + '\'' +
+                    '}';
         }
     }
 

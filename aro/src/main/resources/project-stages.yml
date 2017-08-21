@@ -1,0 +1,14 @@
+swarm:
+   port:
+      offset: 3
+   context:
+      path: /aro
+   ds:
+      connection:
+         url: jdbc:mysql://localhost:3306/websocketdemo_aro?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC
+      username: root
+      password: password
+      name: primary
+kafka:
+   bootstrap:
+      servers: localhost:9092,localhost:9093

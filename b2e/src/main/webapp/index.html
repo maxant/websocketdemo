@@ -27,24 +27,31 @@
     socket = new WebSocket("ws://" + getHostAndPort() + "/b2e/ws");
 
     socket.onmessage = function(event) {
-      console.log("received via websocket: " + event.data);
-      if(event.data === 'noData'){
+      var data = event.data;
+      console.log("received via websocket: " + data);
+      if(data === 'noData'){
         //do we need to load the case model too? no, when the user tries to save it, we'd get an optimistic lock exception (if we bothered to impl it!)
         reloadTasks();
-      }else if(event.data.indexOf('ERROR') === 0){
-        console.error(event.data);
+      }else if(data.indexOf('ERROR') === 0){
+        console.error(data);
         setError("Technical error - see console");
       }else{
-        var e = JSON.parse(event.data);
-        localStorage.setItem(EVENTS_LATEST_TIMESTAMP_KEY, e.timestamp);
-
-        if(e.topic === 'aro' && e.command === 'CREATED_TASK'){
-          reloadTasks();
-        }else if(e.topic === 'mcs' && e.command === 'MODIFIED_CASE'){
-          setAck('The case has been updated.'); //TODO do we need to know by who? if a different user did it, we'd want to know that, as it might cause a merge conflict
-        }else{
-          console.error("code change required for unknown topic/command: " + e.topic + "/" + e.command);
+        data = JSON.parse(data);
+        if(!Array.isArray(data)){
+          data = [data];
         }
+
+        data.forEach(function(e){
+          localStorage.setItem(EVENTS_LATEST_TIMESTAMP_KEY, e.timestamp);
+
+          if(e.topic === 'aro' && e.eventName === 'CREATED_TASK'){
+            reloadTasks();
+          }else if(e.topic === 'mcs' && e.eventName === 'MODIFIED_CASE'){
+            setAck('The case has been updated.'); //TODO do we need to know by who? if a different user did it, we'd want to know that, as it might cause a merge conflict
+          }else{
+            console.error("code change required for unknown topic/eventName: " + e.topic + "/" + e.eventName);
+          }
+        });
       }
     };
 
@@ -68,7 +75,32 @@
   }
 
   function reloadTasks(){
-    console.error("TODO");
+    var xhr;
+    if(insuranceCase){
+      xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function(){
+        if (xhr.readyState == XMLHttpRequest.DONE){
+          if (xhr.status == 200){
+            tasksLoaded(JSON.parse(xhr.responseText));
+          }
+        }
+      }
+      xhr.open("GET", "http://" + getHostAndPort() + "/aro/tasks/" + insuranceCase.nr);
+      xhr.send();
+    }
+  }
+
+  function tasksLoaded(tasks){
+    var s = "";
+    tasks.forEach(function(t){
+      s += "<li>Task " + t.id + ": " + t.description + "</li>";
+    });
+    if(!s){
+      s = "No tasks.";
+    }else{
+      s = "<ul>" + s + "</ul>";
+    }
+    document.getElementById("tasks").innerHTML = s;
   }
 
   function setAck(msg){
@@ -86,7 +118,7 @@
     var msg = {
       latestTimestamp: localStorage.getItem(EVENTS_LATEST_TIMESTAMP_KEY) || Date.now(),
       command: 'newContext',
-      context: ''+insuranceCase.nr
+      context: '' + insuranceCase.nr
     };
 
     send(JSON.stringify(msg));
@@ -230,6 +262,7 @@
                 <br/>
                 <button type="button" onclick="saveCase();">Submit</button>
             </form>
+            <div id="tasks">No tasks.</div>
         </div>
     </div>
 </div>

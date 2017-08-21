@@ -105,9 +105,10 @@ public class EventProcessor {
 
             logger.info(format("got message from kafka: topic= %s, offset = %d, key = %s, value = %s%n", record.topic(), record.offset(), record.key(), record.value()));
 
-            model.addEvent(new Model.Event(record.key(), record.value(), record.timestamp(), record.offset(), record.topic()));
+            Model.Event event = new Model.Event(record.key(), record.value(), record.timestamp(), record.offset(), record.topic());
+            model.addEvent(event);
 
-            eventSender.distributeToUi(model.getSessions(), record);
+            eventSender.distributeToUi(model.getSessions(), event);
         }
 
         logger.debug("re-executing kafka polling...");

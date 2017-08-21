@@ -18,7 +18,7 @@ public class Case {
     }
 
     public static class NQFindByNumber {
-        public static final String NAME = "Case.findByCreatedBetween";
+        public static final String NAME = "Case.findByNumber";
         public static final String PARAM_NR = "nr";
         public static final String QUERY = "select c from Case c where c.nr = :" + PARAM_NR;
     }
