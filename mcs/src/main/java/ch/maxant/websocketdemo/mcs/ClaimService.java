@@ -28,6 +28,9 @@ public class ClaimService {
     @Resource(name = "java:/jms/queue/events")
     private Queue queue;
 
+    @Inject
+    AroService aroService;
+
     public Case getCase(Long nr) {
         try{
             return em.createNamedQuery(Case.NQFindByNumber.NAME, Case.class)
@@ -42,10 +45,16 @@ public class ClaimService {
         //TODO fix problems with UUID so we can simply do a merge...
         Case dbCase = getCase(insuranceCase.getNr());
         dbCase.setDescription(insuranceCase.getDescription());
+
+        aroService.createTask(insuranceCase.getNr(), "Some text telling the user what to do...");
+
         fire("MODIFIED_CASE", insuranceCase.getNr());
     }
 
     private void fire(String event, long nr) throws JMSException {
+        //use local JMS to create non-transactional kafka into a transactional resource
+        //TODO use kafkas tx API so we don't have to bother with JMS
+        //TODO JMS is no good anyway => if we deploy in docker, we'd possibly overwrite local queue! see "command" solution below
         logger.info("Sending event to local JMS: " + event);
         Message msg = context.createTextMessage(event);
         msg.setStringProperty("context", "" + nr);

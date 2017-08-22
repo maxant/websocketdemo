@@ -5,6 +5,7 @@ import ch.maxant.websocketdemo.aro.data.Task;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Response;
 import java.util.List;
 
 @Path("/tasks")
@@ -24,8 +25,9 @@ public class TaskResource {
     @POST
     @Path("/create")
     @Produces("application/json")
-    public Task create(Task task) {
-        return service.create(task);
+    public Response create(Task task) {
+        task = service.create(task);
+        return Response.status(Response.Status.CREATED).entity(task).build();
     }
 
 }
