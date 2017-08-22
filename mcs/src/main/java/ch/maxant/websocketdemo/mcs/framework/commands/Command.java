@@ -29,11 +29,6 @@ public class Command {
     @Column(name = "COMMAND", nullable = false)
     private String command;
 
-    //use optimistic locking to ensure that we only update it if no-one else has
-    @Column(name = "VERSION", nullable = false)
-    @Version
-    private int version;
-
     @Column(name = "ATTEMPTS", nullable = false)
     private int attempts = 0;
 
@@ -73,10 +68,6 @@ public class Command {
 
     public int getAttempts() {
         return attempts;
-    }
-
-    public int getVersion() {
-        return version;
     }
 
     public Long getLocked() {
