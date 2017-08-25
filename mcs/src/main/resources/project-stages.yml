@@ -8,36 +8,24 @@ swarm:
          default:
             jms-queues:
                events: {}
+   ds:
+      connection:
+         url: jdbc:mysql://localhost:3306/websocketdemo_mcs?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC
+      username: root
+      password: password
+      name: primary
 kafka:
    bootstrap:
       servers: localhost:9092,localhost:9093
-primary_database:
-   jdbcDriver:
-      name: com.mysql
-      driverClassName: com.mysql.cj.jdbc.Driver
-      xaDatasourceClass: com.mysql.cj.jdbc.MysqlXADataSource
-      driverModuleName: com.mysql
-   datasource:
-      driverName: com.mysql
-      url: jdbc:mysql://localhost:3306/websocketdemo_mcs?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC
-      username: root
-      password: password
 aro:
    url: http://websocketdemomaxantch/aro
+commandservice:
+   batch:
+      size: 10 #how many commands should it try to execute in a batch (each within its own transaction
+   timeout: 30000 #how long should it wait before letting other instances retry a command?
 ---
 project:
    stage: test
-database:
-   jdbcDriver:
-      name: TODO-h2
-      driverClassName: TODO-h2
-      xaDatasourceClass: TODO-h2
-      driverModuleName: TODO-h2
-   datasource:
-      driverName: TODO-h2
-      url: TODO-h2
-      username: TODO-h2
-      password: TODO-h2
 ---
 project:
    stage: prod

@@ -5,8 +5,8 @@ import org.slf4j.Logger;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
-import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -20,18 +20,26 @@ public class AroIntegrationService {
     Logger logger;
 
     @Inject
-    Client client;
+    @ARO
+    WebTarget client;
 
     public void createAroTask(String idempotencyId, long caseNr, String textForTask){
-        Response response = client.target(System.getProperty("aro.url"))
-                .path("/tasks/create")
-                .request(MediaType.APPLICATION_JSON_TYPE)
-                .buildPost(Entity.json(new AroTask(caseNr, textForTask)))
-                .invoke();
-        if(response.getStatus() != Response.Status.CREATED.getStatusCode()){
-            throw new RuntimeException("Unable to create ARO Task " + idempotencyId + ". Return code was " + response.getStatus());
+        Response response = null;
+        try {
+            response = client
+                    .path("aro/tasks/create")
+                    .request(MediaType.APPLICATION_JSON_TYPE)
+                    .accept(MediaType.APPLICATION_JSON_TYPE)
+                    .buildPost(Entity.json(new AroTask(caseNr, textForTask)))
+                    .invoke();
+            if (response.getStatus() != Response.Status.CREATED.getStatusCode()) {
+                throw new RuntimeException("Unable to create ARO Task " + idempotencyId + ". Return code was " + response.getStatus());
+            }
+        }finally{
+            if(response != null){
+                response.close(); //very important!
+            }
         }
-        response.close(); //very important!
     }
 
     public static final class AroTask {

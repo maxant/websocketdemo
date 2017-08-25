@@ -25,7 +25,7 @@ public class Case {
 
     @Id
     @Column(name = "ID")
-    private UUID id = UUID.randomUUID();
+    private String id = UUID.randomUUID().toString();
 
     @Column(name = "NR", nullable = false)
     private long nr;
@@ -53,11 +53,12 @@ public class Case {
         return description;
     }
 
-    public UUID getId() {
+    public String getId() {
         return id;
     }
 
     public void setDescription(String description) {
         this.description = description;
     }
+
 }

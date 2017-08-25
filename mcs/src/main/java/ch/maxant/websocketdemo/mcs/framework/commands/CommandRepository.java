@@ -8,6 +8,8 @@ import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Stateless
@@ -32,7 +34,7 @@ public class CommandRepository {
                 .getResultList();
 
         commands.forEach(c -> {
-            c.setLocked(System.currentTimeMillis());
+            c.lock();
         });
 
         return commands;
@@ -44,17 +46,23 @@ public class CommandRepository {
 
     public void resetLockAfterFailure(Command command) {
         command = em.find(Command.class, command.getId());
-        command.setLocked(null);
+        command.resetLocked();
         command.incrementAttempts();
     }
 
     public void delete(Command command) {
+        command = em.find(Command.class, command.getId());
         em.remove(command);
     }
 
-    public int updateTimedoutCommands() {
-        return em.createNamedQuery(Command.NQUpdateLocked.NAME)
-                .setParameter(Command.NQUpdateLocked.PARAM_TIMESTAMP, System.currentTimeMillis() + 30000L)
-                .executeUpdate();
+    public int unlockCommands(long timeout) {
+        LocalDateTime timeoutTime = LocalDateTime.now().minus(Duration.ofMillis(timeout));
+        return em.createNamedQuery(Command.NQSelectLocked.NAME, Command.class)
+                .setParameter(1, timeoutTime) //eg anything before 30 seconds ago, which is the same as anything older than 30 seconds
+                .getResultList()
+                .stream()
+                .peek(c -> c.resetLocked())
+                .mapToInt(c->1)
+                .sum();
     }
 }

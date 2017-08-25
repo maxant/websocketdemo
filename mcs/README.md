@@ -9,6 +9,11 @@ A Swarm application with:
 - JTA
 - Project Stages (Configuration)
 - Flyway
+- Tests using H2, Prod with Mysql
+
+Build and run:
+
+    mvn clean install && java -Dkafka.bootstrap.servers=localhost:9092 -jar target/mcs-swarm.jar
 
 #Useful Links
 

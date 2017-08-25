@@ -10,6 +10,10 @@ A Swarm application with:
 - Project Stages (Configuration)
 - Flyway
 
+Build and run:
+
+    mvn clean install && java -Dkafka.bootstrap.servers=localhost:9092 -jar target/aro-swarm.jar
+
 #Useful Links
 
 - https://wildfly-swarm.gitbooks.io/wildfly-swarm-users-guide/content/

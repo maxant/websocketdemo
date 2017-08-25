@@ -17,8 +17,11 @@
 
         <wildfly-swarm.version>2017.8.1</wildfly-swarm.version>
 
-        <!-- jackson used for json dates. NOTE: version needs to match version used by swarm! -->
+        <!-- jackson used for json dates. NOTE: version needs to match version used by swarm! check inside a build swarm über jar -->
         <jackson.version>2.7.4</jackson.version>
+
+        <!-- taken same version as swarm. used swarm über jar to check it. -->
+        <hibernate.version>5.0.10.Final</hibernate.version>
 
         <junit.version>4.12</junit.version>
         <mysql.connector.version>6.0.6</mysql.connector.version>
@@ -111,6 +114,32 @@
              TEST DEPENDENCIES
              ============================================= -->
 
+        <!-- unit tests use h2 instead of mysql -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>1.4.193</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <scope>test</scope>
+            <version>${hibernate.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-entitymanager</artifactId>
+            <version>${hibernate.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-java8</artifactId>
+            <version>${hibernate.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -198,10 +227,6 @@
             <plugin>
                 <groupId>org.wildfly.swarm</groupId>
                 <artifactId>wildfly-swarm-plugin</artifactId>
-                <configuration>
-                    <!-- not just important for mvn start, but also for supplying main in the uberJAR -->
-                    <mainClass>ch.maxant.websocketdemo.mcs.Main</mainClass>
-                </configuration>
                 <executions>
                     <execution>
                         <id>package</id>
