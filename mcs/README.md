@@ -33,4 +33,5 @@ Build and run:
 -- no its ok, it demonstrates how it could work. and commands demonstrate a better way.
 - fix updating of cases and UUID problems
 - move common stuff to parent
-- move nginx into parent folder.
+- move nginx into parent folder
+- add a process manager which kills instances randomly and triple check we never lose data!
