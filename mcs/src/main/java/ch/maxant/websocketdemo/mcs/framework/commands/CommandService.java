@@ -79,6 +79,8 @@ public class CommandService {
         commands.forEach(c -> executeCommand(c)); //execute commands
 
         if (commands.size() == batchSize) {
+            //still got stuff to do, so go do it. if another instance was waiting
+            //for the lock, it should get there first, balancing load nicely
             self().doImmediateRetryTimeout();
         }
     }

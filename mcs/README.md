@@ -26,10 +26,11 @@ Build and run:
 
 # TODO
 
-- remove main: Custom main() usage is intended to be deprecated in a future release and is no longer supported,
-               please refer to http://reference.wildfly-swarm.io for YAML configuration that replaces it.
+- unit tests with Mysql, because a failed task in db was never repicked!
 - cors: https://github.com/wildfly-swarm/wildfly-swarm-examples/blob/master/jaxrs/health/src/main/java/org/wildfly/swarm/examples/jaxrs/health/CORSFilter.java
 - modify case should create a task in ARO which fires an event. modification should also fire an event.
 - dont use JMS, if the image is replaced, jboss losses any messages not yet processed! => we have to put it into the DB.
+-- no its ok, it demonstrates how it could work. and commands demonstrate a better way.
 - fix updating of cases and UUID problems
 - move common stuff to parent
+- move nginx into parent folder.

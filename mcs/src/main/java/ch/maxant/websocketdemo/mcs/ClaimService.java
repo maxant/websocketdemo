@@ -42,9 +42,7 @@ public class ClaimService {
     }
 
     public void mergeCase(Case insuranceCase) throws JMSException {
-        //TODO fix problems with UUID so we can simply do a merge...
-        Case dbCase = getCase(insuranceCase.getNr());
-        dbCase.setDescription(insuranceCase.getDescription());
+        em.merge(insuranceCase);
 
         aroService.createTask(insuranceCase.getNr(), "Some text telling the user what to do...");
 

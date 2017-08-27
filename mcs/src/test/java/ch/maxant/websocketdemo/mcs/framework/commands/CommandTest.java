@@ -1,44 +1,26 @@
 package ch.maxant.websocketdemo.mcs.framework.commands;
 
+import ch.maxant.websocketdemo.mcs.DbTest;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.flywaydb.core.Flyway;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class CommandTest {
+public class CommandTest extends DbTest {
 
     public static final String SELECT_ALL_COMMANDS = "select c from Command c order by c.id";
-    private EntityManager em;
 
     private CommandRepository commandRepo;
 
-    private EntityManagerFactory emf;
-
     @Before
     public void setup(){
-        //do EM first, then flyway, otherwise the in memory DB is closed before the EM starts up, and the em version has no tables!
-        emf = Persistence.createEntityManagerFactory("primary_test");
-        em = emf.createEntityManager();
-
-        Flyway flyway = new Flyway();
-        flyway.setDataSource("jdbc:h2:mem:test", "sa", "");
-        flyway.migrate();
+        super.setup();
 
         commandRepo = new CommandRepository();
         commandRepo.em = em;
-    }
-
-    @After
-    public void teardown(){
-        emf.close();
     }
 
     @Test
@@ -63,7 +45,6 @@ public class CommandTest {
                 assertEquals("{\"asdf" + i + "\": 123}", cmd.getContext());
                 assertEquals(0, cmd.getAttempts());
                 assertNotNull(cmd.getIdempotencyId());
-                assertNotNull(cmd.getId());
                 assertNotNull(cmd.getLocked());
 
                 cmd.resetLocked(); //so it gets selected in the next part of the test
@@ -111,7 +92,6 @@ public class CommandTest {
                 assertEquals("{\"asdf" + i + "\": 123}", cmd.getContext());
                 assertEquals(0, cmd.getAttempts());
                 assertNotNull(cmd.getIdempotencyId());
-                assertNotNull(cmd.getId());
                 assertNotNull(cmd.getLocked());
             }
 
@@ -163,7 +143,6 @@ public class CommandTest {
             assertEquals("{\"asdf1\": 123}", cmd.getContext());
             assertEquals(1, cmd.getAttempts());
             assertNotNull(cmd.getIdempotencyId());
-            assertNotNull(cmd.getId());
             assertNull(cmd.getLocked());
 
             //non-confirmed one
@@ -172,7 +151,6 @@ public class CommandTest {
             assertEquals("{\"asdf9\": 123}", cmd.getContext());
             assertEquals(0, cmd.getAttempts());
             assertNotNull(cmd.getIdempotencyId());
-            assertNotNull(cmd.getId());
             assertNull(cmd.getLocked());
 
             //from other thread
@@ -181,7 +159,6 @@ public class CommandTest {
             assertEquals("{\"asdf10\": 123}", cmd.getContext());
             assertEquals(0, cmd.getAttempts());
             assertNotNull(cmd.getIdempotencyId());
-            assertNotNull(cmd.getId());
             assertNull(cmd.getLocked());
 
         } finally {
