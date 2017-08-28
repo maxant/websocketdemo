@@ -57,12 +57,14 @@ public class CommandRepository {
 
     public int unlockCommands(long timeout) {
         LocalDateTime timeoutTime = LocalDateTime.now().minus(Duration.ofMillis(timeout));
-        return em.createNamedQuery(Command.NQSelectLocked.NAME, Command.class)
+        int cnt = em.createNamedQuery(Command.NQSelectLocked.NAME, Command.class)
                 .setParameter(1, timeoutTime) //eg anything before 30 seconds ago, which is the same as anything older than 30 seconds
                 .getResultList()
                 .stream()
                 .peek(c -> c.resetLocked())
                 .mapToInt(c->1)
                 .sum();
+System.out.println("COUNT " + cnt + " UPDATED WITH LOCKED <  " + timeoutTime);
+        return cnt;
     }
 }

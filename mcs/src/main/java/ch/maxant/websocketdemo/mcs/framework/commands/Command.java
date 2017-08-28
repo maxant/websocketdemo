@@ -48,8 +48,8 @@ public class Command {
      * contains input parameters. serialised JSON. could include say a version number, so
      * current software can deal with both old and new entries.
      */
-    @Column(name = "CONTEXT", nullable = false)
-    private String context = UUID.randomUUID().toString();
+    @Column(name = "CONTEXT", nullable = false, updatable = false)
+    private String context;
 
     public Command() {
     }

@@ -26,4 +26,6 @@ This contains the webapp used to subscribe to events from the backend.
 - hows nginx react when we kill one of the b2e instances when its in load balancing mode? will it send everything on to just the one instance? is it nice enough to not kill the one connection, but try to reestablish it with the instance thats still online?
 - ARO integration - see TODO in indexml.html => go fetch aro tasks
 - stopping B2E could be faster?
--
+- split b2e and state server
+- add SSE
+- add ability for mcs/aro to send message direct, without kafka, using Command+REST+idempotency => prolly suitable for initial solution at customer site

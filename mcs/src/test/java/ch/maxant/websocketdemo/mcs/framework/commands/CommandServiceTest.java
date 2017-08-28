@@ -283,6 +283,8 @@ public class CommandServiceTest extends DbTest {
         em.persist(cmd);
         em.getTransaction().commit();
 
+        Thread.sleep(50L); //ensure we are at least one ms later, when we unlock it!
+
         em.getTransaction().begin();
         commandService.timeout(unlockTimer);
         em.getTransaction().commit();
