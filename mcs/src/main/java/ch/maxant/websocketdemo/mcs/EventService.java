@@ -3,6 +3,7 @@ package ch.maxant.websocketdemo.mcs;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -15,6 +16,7 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import java.util.Properties;
+import java.util.concurrent.Future;
 
 @MessageDriven(
         activationConfig={@ActivationConfigProperty(propertyName="destination", propertyValue="/jms/queue/events")},
@@ -57,14 +59,22 @@ public class EventService {
         String context = m.getStringProperty("context");
         logger.info("ON MESSAGE: " + msg);
         try{
-            producer.send(new ProducerRecord<>("mcs", context, msg), (metadata, ex) -> {
-                if(ex == null){
+            Future<RecordMetadata> response = producer.send(new ProducerRecord<>("mcs", context, msg), (metadata, ex) -> {
+                if (ex == null) {
                     logger.info("ACK of '" + msg + "': " + metadata);
-                }else{
+                } else {
                     logger.error("NOK of '" + msg + "': " + metadata, ex);
                 }
             });
             logger.info("sent");
+
+            //one possible solution:
+            //RecordMetadata metadata = response.get();//am i crazy, blocking a thread doing this? well I don't want to commit until this is definitely done!
+            //logger.info("finished sending '" + msg + "': " + metadata);
+            //another: update a status in the DB using a new transaction once the callback is called. that way we know, robustly, what has not yet been sent
+            //the big question here is how important it is to guarantee sending the event. in our use case, failure to send an event is no big
+            //deal, as its just an indicator to the UI that it should do an update. the user can always manually click, if they think
+            //data is missing. and when the context changes, the UI can go get all data anyway.
         }catch (Exception e){
             //according to the docs, because we're using idempotency, we MUST NOT attempt applicatory retries.
             //no rollback!

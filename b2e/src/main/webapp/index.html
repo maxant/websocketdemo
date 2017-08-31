@@ -2,7 +2,7 @@
 <head>
     <title>Websocket Demo</title>
 
-  <script>
+<script>
 
   var EVENTS_LATEST_TIMESTAMP_KEY = "events.latestTimestamp";
   var socket;
@@ -23,6 +23,9 @@
   }
 
   function setupWebSocket(){
+    if(socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)){
+        return; //nothing to do, already on the job or connected
+    }
     console.log("reconnecting ws...");
     socket = new WebSocket("ws://" + getHostAndPort() + "/b2e/ws");
 
@@ -69,10 +72,14 @@
 
     socket.onclose = function(event){
       console.log("ws closed. retrying in 100ms. " + JSON.stringify(event));
-      setTimeout(setupWebSocket, 100);
+      //reconnect will happen automatically. see setInterval below
     };
 
   }
+
+  //check every second that we are indeed connected. since disconnecting from network and closing laptop
+  //can cause events to get lost.
+  setInterval(setupWebSocket, 1000);
 
   function reloadTasks(){
     var xhr;
@@ -115,6 +122,13 @@
   }
 
   function contextChanged(){
+    //we are interested in all events from NOW onwards. or from the timestamp that we last recorded
+    //eg if we are reconnecting.
+
+    TODO we need to save the timestamp PER context!
+    we could equally give 0L to the server, which would cause the server to tell us to go load everything
+    because it doesn't have all the info.
+
     var msg = {
       latestTimestamp: localStorage.getItem(EVENTS_LATEST_TIMESTAMP_KEY) || Date.now(),
       command: 'newContext',
@@ -199,9 +213,10 @@
     document.getElementById("caseNr").focus();
   }, true);
 
-  </script>
 
-  <style type="text/css">
+</script>
+
+<style type="text/css">
 
     .center {
       margin-left: auto;
@@ -224,7 +239,7 @@
       width: 100%;
     }
 
-  </style>
+</style>
 </head>
 <body>
 <div class="page">
